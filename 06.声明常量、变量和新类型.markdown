@@ -1,0 +1,178 @@
+# 声明常量
+***
+声明一个常量：
+    
+        const i = 1
+    
+这里利用了Go的自动类型推断，上面的语句等价于：
+
+        const i int = 1
+        
+另外，Go还支持批量声明语法：
+
+        const (
+            i1 = 0
+            i2 = 1
+            i3 = 2
+        )
+        
+这种批量语法同样可以用于其他几个关键字，var（声明变量）、type（声明新类型）以及import（导入包）。
+
+上面的批量const使多个const的声明变得像C语言中的枚举声明。其实const批量声明语法还能和另外一个大杀器联合使用：iota
+
+具体来说，const中的批量声明，有这两项附加规则：
+
+规则1：可以使用计数器iota，每个const块中的iota都从0开始计数，在每个隐式的分号（行尾）自增。
+
+        const (
+            Monday = iota  // 0
+            Tuesday = iota // 1
+        )
+
+规则2：重复上一个类型和表达式。
+        
+        const (
+            loc0, bit0 uint32 = iota, 1 << iota //0，1
+            loc1, bit1                        //1，2
+            loc2, bit2                        //2，4
+        )
+***
+# 声明变量
+***
+声明一个变量和声明常量类似：
+
+        var i1 = 1
+        var i2 int = 2
+        var (
+            i3 = 3
+            i4 int = 4
+        )
+        
+另外，当声明局部变量时，还可以使用短声明（为什么全局变量就不可以？）：
+
+        i := 1
+
+它等价于
+
+        var i = 1
+        
+注意，短声明只可用于局部变量的声明
+
+在同一个作用域内，重复声明变量会报错，有一个例外：
+
+        i1, i2 := 1, 2
+        i1, i3 := 1, 3
+        i2, i3 := 2, 3 // no new variables on left side of :=
+
+多变量赋值时，可以使用短声明标记:=，只要左边有至少一个新定义的变量
+***
+# 声明类型
+***
+在Go中，可以将一个新类型指定为一个现有类型或具体类型，使用type关键字声明新类型：
+
+        type newType 现有类型
+        type newType 具体类型
+        
+其中“现有类型”，既可以是内建的int32、float64等类型，也可以是之前通过type声明出来的类型。而“具体类型”，则可以是一个包含具体描述信息的接口（interface）或者结构体（struct）。另外，在使用const或var声明常量或变量时，在类型的位置，也可以直接使用一个具体类型，比如var i 具体类型。
+
+当type一个现有类型时，表示新类型具有现有类型所有的数据组成和方法，尽管他们几乎一模一样，但他们是不同的类型。为什么会这样？因为在声明了一个新类型过后，你可以给新类型绑定方法，而不影响原始类型。
+
+现在来讲具体类型中的接口，即interface，Go中描述一个具体接口的语法是（注意，这个具体描述，既可以放在type后，也可以放在const或var后）：
+
+        interface {
+            函数名 (参数列表) 返回列表 // 函数声明1
+            函数声明2 
+            ...
+        }
+        
+一个例子：
+
+        var a interface {
+            func1 () // 0 arg, 0 ret
+            func2 (i1 int) // 1 arg, 0 ret
+            func3 (i1 int) int // 1 arg, 1 ret
+            func4 (i1 int, i2 float32) (int, int) // 2 arg, 2 ret
+            func5 (i1 int, i2 float32) (r1 int, r2 int) // 2 arg, 2 named ret
+        }
+
+这个接口包含了func1~func5个函数，每个函数包含了不同个数的参数或者返回值，其中func5甚至使用的是命名返回值。声明函数本来需要func关键字，大概因为接口内只会有函数声明，所以func就省了吧。由于Go中的接口是隐式实现的，所以实现接口的struct并不需要明确的指明implements关系。虽然这里的接口一种类似动态语言中duke typeing的一组函数的集合，但他和其他比如C++/Java中接口的概念是一样的，接口指向的对象，looks like这个接口，但不一定是is关系。再提一次，接口的内容只是一组函数声明，不会有其他东西。
+
+再来看struct，所谓结构体，如其名，就是一堆数据的组合：
+
+        struct {
+            i int
+            f float32
+        }
+
+一旦type出新类型过后，你就可以为它绑定方法，被绑定的类型要求只能是struct或者内建类型，而不能是接口或者指针。
+
+再讲怎么声明一个方法前，需要先提一下怎么声明一个函数，类似接口中函数的声明，这是需要在前面加一个func关键字：
+
+        func func1(i int) int
+        
+这就声明了一个接受一个int并返回一个int的全局函数。
+
+稍微修改，就能得到方法声明：
+
+        func (this MyNewType) func1 (i int) int
+
+其中(this MyNewType)，表示这个方法是MyNewType的，并且方法内可以通过this来访问对象本身，当然你也可以将它命名为self，这里我只是参考了C++的办法。
+
+另外，你也可以使用这样的语法声明方法：
+
+        func (this *MyNewType) func1 (i int) int
+
+这里使用的是指针，而不是值，这意味着，能够从方法内部改变对象，而不是改变对象的拷贝，该方法可以使一个write方法，而不只是一个read方法，另外，当MyNewType较大时，传指针会跟快。
+
+因为Go在字段或者方法调用时，并不区分指针和值的语法，故，下面的代码效果是一样的：
+
+        a := MyNewType{}
+        pa := &a
+        a.func1(1)
+        pa.func1(1)
+        
+好的，回到前面，将接口和结构体联合起来，写一个例子：
+
+        package main
+
+        type TypeA struct {
+            id int
+            name string
+        }
+        func (this TypeA) func1 (i int) int {
+            return i * i
+        }
+        
+        type IA interface {
+            func1 (int) int
+        }
+        
+        func main() {
+            a := TypeA{}
+            var ia IA = a
+            println(a.func1(2))
+            println(ia.func1(3))
+        }
+        
+注意，上面的方法定义是写在struct外的，这和C++等语言不同，因为TypeA实现了IA要求的func1(int)int方法，即实现了一个“名为func1，且接受一个int并返回一个int”的函数，所以类型为接口IA的对象ia可以直接指向a。这个赋值同时会造成装箱，而装箱同时有伴随着值拷贝...
+
+当然，上面的例子中的接口也可以临时声明，一般来说这种写法较少：
+
+        package main
+        
+        type TypeA struct {
+            id int
+            name string
+        }
+        func (this TypeA) func1 (i int) int {
+            return i * i
+        }
+        
+        func main() {
+            a := TypeA{}
+            var ia interface {
+                func1(int) int
+            } = a
+            println(a.func1(2))
+            println(ia.func1(3))
+        }

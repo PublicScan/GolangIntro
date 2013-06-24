@@ -1,0 +1,735 @@
+# const声明
+***
+代码：
+
+    package main
+    func main() {
+        const c1 = 1
+    
+        const (
+            c2 = 2
+            c3 = 3
+        )
+    
+        const (
+            c4 = iota
+            c5 
+            c6 
+        )
+    
+        const (
+            c7 = iota * iota
+            c8 
+            c9
+        )
+    
+        println(c1, c2, c3, c4, c5, c6, c7, c8, c9)
+    }
+
+输出：
+
+    1 2 3 0 1 2 0 1 4
+***
+# var声明
+***
+代码：
+
+    package main
+    
+    var v1 = 1
+    var v2 int = 2
+    
+    func main() {
+    
+        v3 := 3
+    
+        println(v1, v2, v3)
+    }
+
+输出：
+
+    1 2 3
+***
+# 用func声明函数
+***
+代码：
+
+    package main
+    
+    func func_0_0() {
+    }
+    
+    func func_1i_0(arg1 int) {
+    }
+    
+    func func_1i_1i(arg1 int) int {
+        return arg1
+    }
+    
+    func func_1i_2i(arg1 int) (int, int) {
+        return arg1, arg1
+    }
+    
+    func func_1i_n2i(arg1 int) (ret1 int, ret2 int) {
+        ret1 = 1
+        return 1, 2
+    }
+    
+    func main() {
+        func_0_0()
+        func_1i_0(1)
+        func_1i_1i(1)
+        func_1i_2i(1)
+        func_1i_n2i(1)
+    }
+
+输出：
+    
+    _
+***
+# if
+***
+代码：
+    
+    package main
+    
+    func findData() (data int, exist bool) {
+        return 1, true
+    }
+    
+    func main() {
+        if true {
+            println("true")
+        }
+    
+        if data, exist := findData(); exist {
+            println("found data: ", data)
+        } else {
+            println("not found data")
+        }
+    }
+
+输出：
+    
+    true
+    found data:  1
+***
+# for
+***
+代码：
+
+    package main
+    
+    func findData() (data int, quantity int) {
+        return 9, 3
+    }
+    
+    func main() {
+        for {
+            println("for 0")
+            break
+        }
+    
+        for true {
+            println("for 1")
+            break
+        }
+    
+        for data, quantity := findData(); quantity > 0; quantity -= 1 {
+            println(data)
+        }
+    }
+
+输出：
+    
+    for 0
+    for 1
+    9
+    9
+    9
+***
+# switch
+***
+代码：
+    
+    package main
+    
+    func main() {
+        count, a, v := 9, 1, 2
+        switch count % 7 {
+            case 4, 5, 6: println("do nothing")
+            case 3: a *= v; fallthrough
+            case 2: a *= v; fallthrough
+            case 1: a *= v; fallthrough
+            case 0: println(a * v)
+        }
+    
+        switch a, b := 1, 2; {
+            case a < b: println(-1)
+            case a == b: println(0)
+            case a > b: println(1)
+        }
+    
+        var i interface{} = 3.14
+        switch i.(type) {
+        case int32: println("int32")
+        case float32: println("float32")
+        case float64: println("float64")
+        }
+    }
+
+输出：
+    
+    8
+    -1
+    float64
+***
+# struct声明
+***
+代码：
+
+    package main
+    
+    type People struct {
+        id int
+        name string
+    }
+    
+    func (this People) ID() int {
+        return this.id
+    }
+    func (this People) Name() string {
+        return this.name
+    }
+    
+    func (this *People) SetID(id int)  {
+        this.id = id
+    }
+    func (this *People) SetName(name string)  {
+        this.name = name
+    }
+    
+    func main() {
+        p1 := People{1, "num_1"}
+        println(p1.ID())
+        p1.SetName("NUM_1")
+        println(p1.Name())
+    
+        p2 := People{id:2, name:"num_2"}
+        p2.SetName("NUM_2")
+        println(p2.Name())
+    }
+    
+输出：
+
+    1
+    NUM_1
+    NUM_2
+    
+***
+# interface的声明
+***
+代码：
+    
+    package main
+    
+    type People struct {
+        name string
+    }
+    func (this *People) Name () string {
+        return this.name
+    }
+    func (this *People) SetName (name string){
+        this.name = name
+    }
+    
+    type Namer interface {
+        Name() string
+    }
+    
+    func main() {
+        p := People{name:"num_1"}
+        
+        var namer Namer = &p
+        println(namer.Name())
+    
+        p.SetName("NUM_1")
+        println(namer.Name())
+    }
+
+输出：
+
+    num_1
+    NUM_1
+***
+# 声明临时的struct或interface
+***
+代码：
+输出：
+***
+# type一个现有的类型
+***
+代码：
+输出：
+***
+# 为任何非指针或引用的类型绑定方法
+***
+代码：
+输出：
+***
+# interface继承和struct继承
+***
+代码：
+
+    package main
+    
+    type Sizer interface {
+        Size() int
+    }
+    type Locker interface {
+        Lock()
+        Unlock()
+    }
+    type LockableSizer interface {
+        Sizer
+        Locker
+    }
+    
+    type Mutex struct {
+        mid int
+    }
+    func (this *Mutex) Lock() {
+        println("Lock", this.mid)
+    }
+    func (this *Mutex) Unlock() {
+        println("Unlock", this.mid)
+    }
+    
+    type ThreadSafeArray struct {
+        *Mutex
+        array []int
+    }
+    func (this *ThreadSafeArray) Size() int {
+        return len(this.array)
+    }
+    
+    func main() {
+        a := ThreadSafeArray{&Mutex{9}, []int{1, 2, 3, 4}}
+        var ia LockableSizer = &a
+        ia.Lock()
+        println(ia.Size())
+        ia.Unlock()
+    }
+    
+输出：
+
+    Lock 9
+    4
+    Unlock 9
+***
+# defer的LIFO特性
+***
+代码：
+
+        package main
+        func main() {
+            for i := 0; i < 10; i++ {
+                defer func(i int) {
+                    print(i, ",")
+                }(i)
+            }
+        }
+
+输出：
+
+        9,8,7,6,5,4,3,2,1,0,
+***
+# 异常处理——panic和recover
+***
+代码：
+
+    package main
+    
+    func innerFunc_2() {
+        defer func() {
+            if err := recover(); err != nil {
+                println("defer of innerFunc_2: panic")
+                panic(err)
+            } else {
+                println("defer of innerFunc_2: not panic")
+            }
+        }()
+    
+        println("enter innerFunc_2")
+        panic("panic innerFunc_2")
+        println("leave innerFunc_2")
+    }
+    
+    func innerFunc_1() {
+        defer func() {
+            if err := recover(); err != nil {
+                println("defer of innerFunc_1: panic")
+            } else {
+                println("defer of innerFunc_1: not panic")
+            }
+        }()
+    
+        println("enter innerFunc_1")
+        innerFunc_2()
+        println("leave innerFunc_1")
+    }
+    
+    func main() {
+        println("enter main")
+        innerFunc_1()
+        println("leave main")
+    }
+
+输出：
+
+    enter main
+    enter innerFunc_1
+    enter innerFunc_2
+    defer of innerFunc_2: panic
+    defer of innerFunc_1: panic
+    leave main
+***
+# 将defer用于异常安全
+***
+代码：
+    
+    package main
+    
+    type File int 
+    func (this *File) Open() {
+        println("Open:", *this)
+    }
+    func (this *File) Close() {
+        println("Close:", *this)
+    }
+    
+    func main() {
+        println("enter main")
+    
+        f := File(9)
+        defer f.Close()
+        f.Open()
+    
+        panic("runtime error!")
+    
+        println("leave main")
+    }
+
+输出：
+
+        enter main
+        Open: 9
+        Close: 9
+        panic: runtime error!
+        
+        goroutine 1 [running]:
+        main.main()
+                E:/Projects/Go/main.go:18 +0xb0
+        ...
+***
+# Gorotuine - 它是线程
+***
+代码：
+        
+    package main
+    import (
+        "time"
+        "runtime"
+    )
+    
+    func main() {
+        runtime.GOMAXPROCS(4)
+    
+        printIntFunc := func() {
+            time.Sleep(time.Second * 1)
+            for i := 0; i < 5; i++ {
+                println(2)
+            }
+        }
+        go printIntFunc()
+    
+        time.Sleep(time.Second * 1)
+        for i := 0; i < 5; i++ {
+            println(1)
+        }
+    
+        time.Sleep(time.Second * 1)
+    }
+
+
+输出：
+        
+    12
+    1
+    
+    1
+    12
+    1
+    2
+    
+    2
+    2
+***
+# Gorotuine - 资源竞争
+***
+代码：
+
+    package main
+    import (
+        "time"
+        "runtime"
+    )
+    
+    func main() {
+        runtime.GOMAXPROCS(4)
+    
+        n := 0
+    
+        printIntFunc := func(pn *int) {
+            for i := 0; i < 100000; i++ {
+                *pn++
+            }
+        }
+        go printIntFunc(&n)
+    
+        for i := 0; i < 100000; i++ {
+            n--
+        }
+    
+        time.Sleep(time.Second * 1)
+        println(n)
+    }
+
+输出：
+
+    78883
+***
+# Channel - 试用
+***
+代码：
+
+    package main
+    func main() {
+        c := make(chan int, 1) // why must be buffered chan ?
+        c <- 5
+        println(<- c)
+    }
+
+输出：
+
+    5
+***
+# Channel - 通信
+***
+代码：
+    
+    package main
+    func main() {
+        readC, writeC := make(chan int, 1), make(chan int, 1)
+    
+        writeC <- 9
+    
+        go func(readC chan int, writeC chan int) {
+    
+            println(<- readC)
+            writeC <- 1
+    
+        }(writeC, readC)
+    
+        println(<- readC)
+    }
+
+输出：
+
+    9
+    1
+***
+# Channel - 资源访问之Actor模型
+***
+代码：
+    
+    package main
+    import (
+        "time"
+    )
+    
+    func main() {
+        n := 0
+        cmdChan := make(chan int)
+    
+        go func() {
+            for {
+                off := <- cmdChan
+                n += off
+            }
+        } ()
+    
+        go func() {
+            for i := 0; i < 100000; i++ {
+                cmdChan <- -1
+            }
+        }()
+    
+        for i := 0; i < 100003; i++ {
+            cmdChan <- 1
+        }
+    
+        time.Sleep(time.Second * 1)
+        println(n)
+    }
+
+输出：
+
+    3
+***
+# Channel - Actor模型的封装
+***
+代码：
+    
+    package main
+    import (
+        "time"
+    )
+    
+    type RequestType int
+    const (
+        REQ_Get RequestType = iota
+        REQ_Add
+        REQ_Destroy
+    )
+    type Request struct {
+        reqType RequestType
+        arg int
+    }
+    
+    type ResponseType int
+    const (
+        RESP_Get ResponseType = iota
+        RESP_Destroy
+    )
+    type Response struct {
+        respType ResponseType
+        arg int
+    }
+    
+    type IntOwner struct {
+        id float32
+        reqChan chan <- Request
+        respChan <-chan Response
+    }
+    func CreateIntOwner(id float32) *IntOwner {
+        reqChan, respChan := make(chan Request, 10), make(chan Response)
+    
+        go func() {
+            println("begin int owner:", id)
+    
+            n := 0
+            l_for: for {
+                switch req := <-reqChan; req.reqType {
+                case REQ_Get:
+                    respChan <- Response{RESP_Get, n}
+                case REQ_Add:
+                    n += req.arg
+                case REQ_Destroy: 
+                    respChan <- Response{RESP_Destroy, 0}
+                    break l_for
+                }
+            }
+    
+            println("end int owner:", id)
+        }()
+    
+        return &IntOwner{id:id, reqChan:reqChan, respChan:respChan}
+    }
+    func (this *IntOwner) Get() int {
+        this.reqChan <- Request{REQ_Get, 0}
+        return (<- this.respChan).arg
+    }
+    func (this *IntOwner) Add(off int) {
+        this.reqChan <- Request{REQ_Add, off}
+    }
+    func (this *IntOwner) Destroy() {
+        this.reqChan <- Request{REQ_Destroy, 0}
+        <-this.respChan
+        return
+    }
+    
+    func main() {
+        println("begin main")
+    
+        owner := CreateIntOwner(9)
+    
+        for i := 0; i < 10; i++ {
+            go func() {
+                for i := 0; i < 100000; i++ {
+                    owner.Add(-1)
+                }
+            }()
+        }
+        for i := 0; i < 10; i++ {
+            go func() {
+                for i := 0; i < 100001; i++ {
+                    owner.Add(1)
+                }
+            }()
+        }
+    
+        time.Sleep(time.Second * 1)
+    
+        n := owner.Get()
+        owner.Destroy()
+        println("result:", n)
+    
+        println("end main")
+    }
+
+输出：
+    
+    begin main
+    begin int owner: +9.000000e+000
+    end int owner: +9.000000e+000
+    result: 10
+    end main
+***
+# Channel - EchoServer
+***
+代码：
+    
+    package main
+    import (
+        "net"
+        "log"
+        "io"
+    )
+    
+    func handleConnection(conn net.Conn) {
+        io.Copy(conn, conn)
+        conn.Close()
+    }
+    func main() {
+        ln, err := net.Listen("tcp", ":8080")
+        if err != nil {
+            log.Fatalln("listen failed: ", err)
+        }
+        for {
+            conn, err := ln.Accept()
+            if err != nil {
+                log.Println("accept failed: ", err)
+                continue
+            }
+            go handleConnection(conn)
+        }
+    }
+
+输出：
+
+    _
+***
+# Channel - 聊天服务器
+***
+***

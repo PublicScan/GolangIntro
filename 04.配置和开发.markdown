@@ -1,0 +1,63 @@
+# 配置和开发
+***
+#### 1. 下载和安装
++ 下载：[code.google.com](https://code.google.com/p/go/downloads/list)
++ 安装后，设置环境变量
+
+        export GOROOT=$HOME/go
+        export PATH=$PATH:$GOROOT/bin
+        
++ 运行测试代码。保存下面内容到文件hello.go：
+
+        package main
+        import "fmt"
+        func main() {
+            fmt.Printf("hello, world\n")
+        }
+
+    执行命令：
+    
+        $ go run hello.go
+        hello, world
+
+#### 2. 文档
++ 命令行方式，输入“godoc 包名 函数名”：
+
+        godoc fmt Printf    
+    
+    输出：
+        PACKAGE
+
+        package fmt
+            import "fmt"
+        
+        
+        FUNCTIONS
+        
+        func Printf(format string, a ...interface{}) (n int, err error)
+            Printf formats according to a format specifier and writes to standard
+            output. It returns the number of bytes written and any write error
+            encountered.
+
++ 在本机建立web服务器。输入命令：
+        
+        godoc -http=:6060
+
+    然后访问“http://localhost:6060”，然后可以打开和[http://golang.org/](http://golang.org/)相同的页面，方便进行快速的文档、源码浏览。
+    
+#### 3. 开发工具
++ 语法高亮：拷贝$GOROOT/misc/vim到~/.vim，然后可以实现*.go文件的词法高亮和对齐+ 安装代码补全插件gocode：
+
+        go get -u github.com/nsf/gocode
+        
+    然后
+    
+        cd vim && ./update.bash
+        
+    效果图：
+    ![预览](https://a248.e.akamai.net/camo.github.com/3b2eb4c4dc72b975032f536a93260dfe7353c23f/687474703a2f2f6e6f736d696c65666163652e72752f696d616765732f676f636f64652d73637265656e73686f742e706e67)
+    
+#### 4. 开始学习
++ 1 . 在线编码Web站，学习Go的语法和常用库：[A Tour of Go](http://tour.golang.org/)
++ 2 . 学会语法和特性后的必看资料，来自其他语言社区的最佳实践的传统：[Effective Go](http://golang.org/doc/effective_go.html)
++ 3 . 标准库参考：[Package Documentation](http://golang.org/pkg/) 

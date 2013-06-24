@@ -1,0 +1,237 @@
+# Goroutine
+***
+原文：[Go程序设计语言（三）](http://tonybai.com/2012/08/28/the-go-programming-language-tutorial-part3/)
+***
++ 术语
+
+对于“并发运行的事物”已经有了好多术语 – 进程、线程、协程(coroutine)、POSIX线程、NPTL线程、轻量级进程，但这些事物都或多或少有不同。并且Go中的并发与哪种都不甚相同，因此我们介绍一个新术语：Goroutine
+
++ 定义
+
+一个Goroutine是一个与其他Goroutines运行在同一地址空间的Go函数或方法。一个运行的程序由一个或更多个Goroutine组成，它与线程、协程、进程等不同。它是一个goroutine。注意，Concurrency与Parallelism是不同的概念
+
+
+启动一个Goroutine，调用一个函数或方法，然后说go：
+
+        func isReady(what string, minutes int64) {
+            time.Sleep(minutes * 60 * 1e9) // Unit is nanosecs.
+            println(what, "is ready")
+        }
+        go isReady("tea", 6)
+        go isReady("coffee", 2)
+        println("I'm waiting…")
+
+输出：
+
+        I'm waiting… // 立即
+        coffee is ready // 2分钟后
+        tea is ready // 6分钟后
+
+Goroutine的使用代价很低。当从最外层函数返回，或执行到结尾处时，Goroutine退出。Goroutines可以并行地在不同CPU上执行，共享内存，你无需担心栈大小，在gccgo中，至少目前Goroutines就是pthreads。在6g中，Goroutines采用基于线程的多路复用技术，因此它们的代价更低廉，无论是上面哪个实现，栈都很小（几KB)，可以根据需要增长。因此Goroutines使用很少的内存。你可以创建很多Goroutines，它们还可以动态拥有很大的栈，程序员无需考虑栈大小相关话题
+
+Goroutine多路复用系统线程。当一个Goroutine执行了一个阻塞的系统调用时，其他Goroutine不会不阻塞。计划后续实现CPU绑定的Goroutines，不过目前用6g如果你想要用户层级别的并行，你必须设置环境变量GOMAXPROCS或调用runtime.GOMAXPROCS(n)。GOMAXPROCS告诉运行时调度器有多少个用户空间Goroutine即将同时执行，理想情况下在不同的CPU核上，gccgo总是为每个goroutine单独分配一个线程执行。
+
+***
+# Channel
+***
+除非两个goroutine可以通信，否则它们无法协作，Go中有一个名为channel的类型，提供通信和同步能力，Go中还提供一些特殊的基于channel的控制结构，使得编写并发程序更加容易。
+
+该类型最简单形式：
+
+        chan elementType
+
+通过这个类型的值，你可以发送和接收elementType类型的元素。Channel是引用类型，这意味着如果你将一个chan变量赋值给另外一个，则这两个变量访问的是相同的channel。同样，这也意味着可以用make分配一个channel：
+
+        var c = make(chan int)
+
+通信操作符：<-，箭头指示数据流向。作为一个二元操作符，<-将值从右侧发送到左侧的channel中：
+
+        c := make(chan int)
+        c <- 1 // 向c发送1
+
+作为前缀一元操作符，<- 从一个channel中接收数据：
+
+        v = <-c // 从c中接收数据，赋值给v
+        <-c // 接收数据，丢弃
+        i := <-c // 接收值，用于初始化i
+
+默认情况下，通信是同步的。(我们后续将讨论异步通信)。这意味着：
+
++ A在一个channel上的发送操作会阻塞，直到该channel上有一个接收者就绪。
++ 在一个channel上到的接收操作会阻塞，直到该channel上有一个发送者就绪。
+
+因此通信是同步的一种形式：两个通过channel交换数据的goroutine在通信的时刻同步。
+让我们泵一些数据吧：
+
+        func pump(ch chan int) {
+            for i := 0; ; i++ { ch <- i }
+        }
+        ch1 := make(chan int)
+        go pump(ch1) // pump挂起; 我们运行
+        println(<-ch1) // 打印 0
+
+现在我们启动一个循环接收者：
+
+        func suck(ch chan int) {
+            for { println(<-ch) }
+        }
+        go suck(ch1) // 大量数字出现
+
+你仍可以溜进去，抓取一个值：
+
+        println(<-ch1) // 输出：3141159
+
+在前面的例子中，pump像一个生成器，喷涌出值。但在分配channel等方面做了很多工作。让我们将其打包到一个返回channel的函数中：
+
+        func pump() chan int {
+            ch := make(chan int)
+            go func() {
+                for i := 0; ; i++ { ch <- i }
+            }()
+            return ch
+        }
+        stream := pump()
+        println(<-stream)// 打印 0
+
+返回channel的函数"是Go中的一个重要的惯用法
+
+for循环的range子句接收channel作为一个操作数，在这种情况下，for循环迭代处理从channel接收到的值。我们来重写pump函数；这里是suck的重写，让它也启动一个goroutine：
+
+        func suck(ch chan int) {
+            go func() {
+                for v := range ch { println(v) }
+            }()
+        }
+        suck(pump()) // 现在不再阻塞
+        
+
+range是如何知道何时channel上的数据传输结束了呢？发送者调用一个内置函数close：
+
+        close(ch)
+
+接收者使用"comma ok"测试发送者是否关闭了channel：
+
+        val, ok:= <- ch
+
+当结果为(value, true)，说明依然有数据；一旦channel关闭，数据流干，结果将会是(zero, false)。
+
+在一个channel上使用range，诸如：
+
+        for value := range <-ch {
+            use(value)
+        }
+
+等价于：
+
+        for {
+            value, ok := <-ch
+            if !ok {
+                break
+            }
+            use(value)
+        }
+        
+        
+close的关键点：
+
++ 只有发送者可以调用close。
++ 只有接收者可以询问是否channel被关闭了。
++ 只有在获取值的同时询问(避免竞争)
++ 只有在有必要通知接收者不会再有数据的时候才调用close。
++ 大多数情况下，不需要用close；它与关闭一个文件没有可比性。
++ channel是可以垃圾回收的。
+
+
+一个channel变量的最简单形式是一个非缓冲(同步的)值，该值可以用于进行发送和接收。一个channel类型可以被指定为只发或只收：
+
+        var recvOnly <-chan int
+        var sendOnly chan<- int
+        
+所有channel创建时都是双向的，但我们可以将它们赋值给带方向性的channel变量。从类型安全性角度考虑，对于函数内的实例非常有用：
+
+        func sink(ch <-chan int) {
+            for { <-ch }
+        }
+        func source(ch chan<- int) {
+            for { ch <- 1 }
+        }
+        c := make(chan int)//双向的
+        go source(c)
+        go sink(c)
+        
+
+同步的Channel是非缓冲的。发送动作不会完成，直到一个接收者接收这个值。
+
+        c := make(chan int)
+        go func() {
+            time.Sleep(60*1e9)
+            x := <-c
+            println("received", x)
+        }()
+        
+        println("sending", 10)
+        c <- 10
+        println("sent", 10)
+
+输出：
+
+        sending 10 // 立即发生
+        sent 10 // 60秒后，这两行出现
+        received 10
+
+
+通过告知make缓冲中元素的数量，我们可以创建一个带缓冲的、异步的channel：
+
+        c := make(chan int, 50)
+        go func() {
+            time.Sleep(60*1e9)
+            x := <-c
+            println("received", x)
+        }()
+        println("sending", 10)
+        c <- 10
+        println("sent", 10)
+
+输出：
+
+        sending 10 // 立刻发生
+        sent 10 // 现在
+        received 10 // 60秒后
+        
+
+select是Go中的一个控制结构，类似于用于通信的switch语句。每个case必须是一个通信操作，要么是send要么是receive：
+        
+        ci, cs := make(chan int), make(chan string)
+        select {
+            case v := <-ci:
+                println("received %d from ci\n", v)
+            case v := <-cs:
+                println("received %s from cs\n", v)
+        }
+
+select随机执行一个可运行的case。如果没有case可运行，它将阻塞，直到有case可运行。一个默认的子句应该总是可运行的。
+
+select语义：
+
++ 每个case都必须是一个通信(可能是:=)
++ 所有channel表达式都会被求值
++ 所有被发送的表达式都会被求值
++ 如果任意某个通信可以进行，它就执行；其他被忽略。
++ 如果有多个case都可以运行，Select会随机公平地选出一个执行。其他不会执行。
++ 否则：
+    + 如果有default子句，则执行该语句。
+    + 如果没有default字句，select将阻塞，直到某个通信可以运行；Go不会重新对channel或值进行求值。
+
+
+一个通信可以在一个给定的时间内成功完成么？time包包含了after函数：
+
+        func After(ns int64) <-chan int64
+
+在指定时间段之后，它向返回的channel中传递一个值(当前时间)。在select中使用它以实现超时：
+        
+        select {
+        case v := <-ch:
+            println("received", v)
+        case <-time.After(30*1e9):
+            println("timed out after 30 seconds")
+        }
